@@ -4,7 +4,8 @@ var actorChars = {
   "o": Coin, // A coin will wobble up and down
   "=": Lava, "|": Lava, "v": Lava,
   "h": Heart,
-  "g": Ghost
+  "g": Ghost, "f": Ghost, "d": Ghost,
+  "b": Berry
 };
 
 function Level(plan) {
@@ -43,9 +44,6 @@ function Level(plan) {
 
       else if (ch == "y")
         fieldType = "floater";
-
-      else if (ch == "g")
-        fieldType = "ghost";
 
       // "Push" the fieldType, which is a string, onto the gridLine array (at the end).
       gridLine.push(fieldType);
@@ -104,6 +102,13 @@ function Heart(pos) {
 }
 Heart.prototype.type = "heart";
 
+function Berry(pos) {
+  this.basePos = this.pos = pos.plus(new Vector(0.2, 0.1));
+  this.size = new Vector(0.6, 0.6);
+  this.wobble = Math.random() * Math.PI * 2;
+}
+Berry.prototype.type = "berry";
+
 // Lava is initialized based on the character, but otherwise has a
 // size and position
 function Lava(pos, ch) {
@@ -123,6 +128,22 @@ function Lava(pos, ch) {
 }
 Lava.prototype.type = "lava";
 
+function Ghost(pos, ch) {
+  this.pos = pos;
+  this.size = new Vector(1, 1);
+  if (ch == "g") {
+    // Horizontal ghost
+    this.speed = new Vector(2, 0);
+  } else if (ch == "f") {
+    // Vertical ghost
+    this.speed = new Vector(0, 2);
+  } else if (ch == "d") {
+    // Drip ghost. Repeat back to this pos.
+    this.speed = new Vector(0, 3);
+    this.repeatPos = pos;
+  }
+}
+Ghost.prototype.type = "ghost";
 
 // Helper function to easily create an element of a type provided
 function elt(name, className) {
@@ -314,7 +335,7 @@ var maxStep = 0.05;
 
 var wobbleSpeed = 8, wobbleDist = 0.07;
 
-Coin.prototype.act = function(step) {
+Berry.prototype.act = function(step) {
   this.wobble += step * wobbleSpeed;
   var wobblePos = Math.sin(this.wobble) * wobbleDist;
   this.pos = this.basePos.plus(new Vector(0, wobblePos));
@@ -330,6 +351,19 @@ Heart.prototype.act = function(step) {
   this.pos = this.basePos.plus(new Vector(0, wobblePos));
 };
 
+var maxStep = 0.05;
+
+var wobbleSpeed = 4, wobbleDist = 0.08;
+
+Ghost.prototype.act = function(step, level) {
+  var newPos = this.pos.plus(this.speed.times(step));
+  if (!level.obstacleAt(newPos, this.size))
+    this.pos = newPos;
+  else if (this.repeatPos)
+    this.pos = this.repeatPos;
+  else
+    this.speed = this.speed.times(-1);
+};
 
 var maxStep = 0.05;
 
@@ -366,6 +400,10 @@ Player.prototype.moveY = function(step, level, keys) {
   var obstacle = level.obstacleAt(newPos, this.size);
   // The floor is also an obstacle -- only allow players to
   // jump if they are touching some obstacle.
+  if (obstacle  == "ghost") {
+  this.pos = new Vector(4,15)
+}
+
   if (obstacle) {
     level.playerTouched(obstacle);
     if (keys.up && this.speed.y > 0)
@@ -396,16 +434,26 @@ Level.prototype.playerTouched = function(type, actor) {
 
   // if the player touches lava and the player hasn't won
   // Player loses
-  if (type == "lava" && this.status == null) {
+  if (type == "lava" || type == "ghost" && this.status == null) {
     this.status = "lost";
     this.finishDelay = 1;
-  } else if (type == "coin", "heart") {
+  } else if (type == "coin" || type == "heart" || type == "berry") {
     this.actors = this.actors.filter(function(other) {
       return other != actor;
     });
+
+    if (type == "berry") {
+      playerXSpeed = 10;
+      jumpSpeed = 10;
+      gravity = 4;
+    }
+     if (type == "ghost") {
+       return startLevel;
+     }
+
     // If there aren't any coins left, player wins
     if (!this.actors.some(function(actor) {
-           return actor.type == "coin"||actor.type == "heart";
+           return actor.type == "coin";
          })) {
       this.status = "won";
       this.finishDelay = 1;

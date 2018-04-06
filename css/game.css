@@ -24,6 +24,9 @@
 .player { background: url("https://vignette.wikia.nocookie.net/nintendo/images/9/90/Pac-Man_sprite.png/revision/latest/scale-to-width-down/173?cb=20140829150626&path-prefix=en");
           background-size: 17px 18px;
           background-repeat: no-repeat;}
+.berry { background: url("http://i.imgur.com/2DprgWj.png");
+         background-size: 17px 18px;
+         background-repeat: no-repeat; }          
 
 .game {
   overflow: hidden;
